@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Game</title>
+    <link rel="stylesheet" href="css/instruction.css">
+	<style>
+		body {
+    		margin: 0;
+    		height: 100vh;
+    		overflow: hidden;
+    		background-image: url('images/room4.png');
+    		background-size: cover;
+    		background-position: center;
+    		background-repeat: no-repeat;
+    		background-attachment: fixed;
+		}
+		
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .item {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            cursor: move;
+        }
+        .bin {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        #laundry-bin {
+            right: 2px;
+            bottom: 2px;
+            background-image: url('images/laundrybin.png');
+        }
+        #trash-bin {
+            left: 60px;
+            bottom: 2px;
+            background-image: url('images/trash.png');
+        }
+        #completion-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        #next-room-btn {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+		
+		/* Add firework */
+
+		#fireworks-container {
+    		position: fixed;
+    		top: 0;
+    		left: 0;
+    		width: 100%;
+    		height: 100%;
+    		pointer-events: none;
+    		z-index: 9999;
+		}
+
+		.firework {
+    		position: absolute;
+    		width: 10px;
+    		height: 10px;
+    		border-radius: 50%;
+    		animation: firework 1s ease-out infinite;
+		}
+
+		@keyframes firework {
+    		0% { transform: translateY(0); opacity: 1; }
+    		100% { transform: translateY(-100px); opacity: 0; }
+		}
+		
+		#timer {
+    		position: absolute;
+    		top: 20px;
+    		left: 20px;
+    		padding: 10px;
+    		background-color: rgba(255, 255, 255, 0.8);
+    		border-radius: 5px;
+    		font-family: Arial, sans-serif;
+    		font-size: 18px;
+    		font-weight: bold;
+		}	
+		#trashBin{
+			z-index: -10;
+		}
+		.item{
+			z-index: 999;
+		}
+		
+	</style>
+</head>
+<body>
+	<div id="fireworks-container" class="hidden"></div>
+	<div id="instruction-box">
+    	<p>Oops! You forgot to clean your room like you promised! Before you fall asleep, clean your room by placing your clothes in the laundry bin and the litter in the trash. Remember to click to make the items disappear! </p>
+	</div>
+	<div id="timer">Time left: 1:00</div>
+    <div id="game-area"></div>
+    <div id="laundry-bin" class="bin"></div>
+    <div id="trash-bin" class="bin"></div>
+    <div id="completion-popup">
+        <h2>Congratulations! You did a good job!</h2>
+        <button id="next-room-btn" style="margin: auto;">Please go to next room</button>
+    </div>
+    <script>
+        const gameArea = document.getElementById('game-area');
+        const laundryBin = document.getElementById('laundry-bin');
+        const trashBin = document.getElementById('trash-bin');
+        const completionPopup = document.getElementById('completion-popup');
+        const nextRoomBtn = document.getElementById('next-room-btn');
+
+        const laundryItems = ['images/sock1', 'images/shirt2', 'images/shirt3', 'images/pant2','images/pant1','images/sock2'];
+        const trashItems = ['images/paper', 'images/bottle1', 'images/can2','images/can1'];
+        let totalItems = 0;
+		
+		let timeLeft = 60; // 1 minutes in seconds
+		let timerInterval;
+				
+
+function createItem(type, isLaundry) {
+    const item = document.createElement('img');
+    item.src = `${type}.png`;
+    item.className = 'item';
+    item.dataset.type = type;
+    item.dataset.isLaundry = isLaundry;
+    
+    // Calculate the boundaries for the central 70% area
+	//Start items from 30% of the screen height from the top, extending to the bottom of the screen (minus the item height)
+    const minX = window.innerWidth * 0.2;
+    const maxX = window.innerWidth * 0.7 - 100; // 100 is item width
+    const minY = window.innerHeight * 0.3;
+    const maxY = window.innerHeight - 100; // 100 is item height
+    
+    // Set random position within the central area
+    item.style.left = minX + Math.random() * (maxX - minX) + 'px';
+    item.style.top = minY + Math.random() * (maxY - minY) + 'px';
+    
+    item.addEventListener('mousedown', startDragging);
+    gameArea.appendChild(item);
+    totalItems++;
+}
+		
+        function startDragging(e) {
+            const item = e.target;
+            let startX = e.clientX - item.offsetLeft;
+            let startY = e.clientY - item.offsetTop;
+
+            function moveItem(e) {
+                item.style.left = (e.clientX - startX) + 'px';
+                item.style.top = (e.clientY - startY) + 'px';
+            }
+
+            function stopDragging() {
+                document.removeEventListener('mousemove', moveItem);
+                document.removeEventListener('mouseup', stopDragging);
+                checkBin(item);
+            }
+
+            document.addEventListener('mousemove', moveItem);
+            document.addEventListener('mouseup', stopDragging);
+        }
+
+        function checkBin(item) {
+            const itemRect = item.getBoundingClientRect();
+            const laundryRect = laundryBin.getBoundingClientRect();
+            const trashRect = trashBin.getBoundingClientRect();
+
+            if (isOverlapping(itemRect, laundryRect) && item.dataset.isLaundry === 'true') {
+                item.remove();
+                totalItems--;
+            } else if (isOverlapping(itemRect, trashRect) && item.dataset.isLaundry === 'false') {
+                item.remove();
+                totalItems--;
+            }
+
+            if (totalItems === 0) {
+				clearInterval(timerInterval);//clear the timer 
+                showCompletion();
+            }
+        }
+
+        function isOverlapping(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                     rect1.left > rect2.right || 
+                     rect1.bottom < rect2.top || 
+                     rect1.top > rect2.bottom);
+        }
+		
+
+function startTimer() {
+    timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updateTimer() {
+    timeLeft--;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    document.getElementById('timer').textContent = `Time left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        gameOver();
+    }
+}
+
+function gameOver() {
+    alert("Over time limit, please do it again");
+    location.reload(); // This will refresh the page
+}
+
+// Modify the showCompletion function
+function showCompletion() {
+    clearInterval(timerInterval); // Stop the timer
+    completionPopup.style.display = 'block';
+    showFireworks();
+	playFireworksSound();
+    setTimeout(() => {
+        nextRoomBtn.style.display = 'block';
+    }, 2000);
+}
+
+		
+		
+		// Add fireworks animation here 
+		function createFirework() {
+    		const firework = document.createElement('div');
+    		firework.className = 'firework';
+    		firework.style.left = Math.random() * 100 + 'vw';
+    		firework.style.top = Math.random() * 100 + 'vh';
+    		firework.style.backgroundColor = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`;
+    		return firework;
+		}	
+
+		function showFireworks() {
+    		const container = document.getElementById('fireworks-container');
+    		container.classList.remove('hidden');
+    		for (let i = 0; i < 50; i++) {
+        		setTimeout(() => {
+            		const firework = createFirework();
+            		container.appendChild(firework);
+            		setTimeout(() => firework.remove(), 1000);
+        		}, i * 100);
+    		}
+		}
+		function playFireworksSound() {
+    		const audio = new Audio('audios/Voicy_Multiple Fire Works With Whistling.mp3');
+    		audio.play();
+		}
+	
+		
+	function initializeGame() {	
+        // Initialize game
+        laundryItems.forEach(item => {
+            for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+                createItem(item, true);
+            }
+        });
+
+        trashItems.forEach(item => {
+            for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+                createItem(item, false);
+            }
+        });
+
+        nextRoomBtn.addEventListener('click', () => {
+            window.location.href = 'room5.html';
+        });
+	}
+		
+		// Window onload event
+window.onload = function() {
+    initializeGame();// game start
+    startTimer();// Call startTimer() when the game begins
+};
+		
+    </script>
+</body>
+</html>

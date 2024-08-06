@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Game</title>
+    <link rel="stylesheet" href="css/room2.css">
+	    <link rel="stylesheet" href="css/instruction.css">
+
+</head>
+<body>
+	<div id="instruction-box">
+    	<p style="color: white; background-color:#000;">Uh oh! The door to your bedroom is locked and you forgot the passcode! Press the buttons that match with your passcode to keep them from changing and try to remember the passcode! </p>
+	</div>
+    <div class="background-container">
+        <div id="password-display"></div>
+        <form id="password-form">
+            <div id="keyboard-container">
+                <div class="keyboard">
+                    <div class="key" data-index="0"></div>
+                    <div class="key" data-index="1"></div>
+                    <div class="key" data-index="2"></div>
+                    <div class="key" data-index="3"></div>
+                    <div class="key" data-index="4"></div>
+                    <div class="key" data-index="5"></div>
+                    <div class="key" data-index="6"></div>
+                    <div class="key" data-index="7"></div>
+                    <div class="key" data-index="8"></div>
+                    <div class="key" data-index="9"></div>
+                    <div class="key" data-index="10"></div>
+                    <div class="key" data-index="11"></div>
+                </div>
+            </div>
+            <input type="hidden" id="entered-password" name="entered-password" value="">
+            <input type="submit" id="submit-button" value="Submit Password" style="display: none;">
+        </form>
+        <div id="message"></div>
+        <div id="animation-container">
+			<img src="images/checkmark.gif" width="300em;" />
+        </div>
+    </div>
+    <script src="js/room2.js"></script>
+</body>
+</html>
